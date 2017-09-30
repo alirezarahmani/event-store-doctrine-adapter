@@ -107,11 +107,7 @@ final class DoctrineEventStoreAdapter implements Adapter, CanHandleTransaction
                 )
             );
         }
-
-        $firstEvent = $stream->streamEvents()->current();
-
-        $this->createSchemaFor($stream->streamName(), $firstEvent->metadata());
-
+        
         $this->appendTo($stream->streamName(), $stream->streamEvents());
     }
 
@@ -154,7 +150,7 @@ final class DoctrineEventStoreAdapter implements Adapter, CanHandleTransaction
     {
         $queryBuilder = $this->connection->createQueryBuilder();
 
-        $table = $this->getTable($streamName);
+        $table = $streamName;
 
         $queryBuilder
             ->select('*')
@@ -226,6 +222,7 @@ final class DoctrineEventStoreAdapter implements Adapter, CanHandleTransaction
      */
     public function createSchemaFor(StreamName $streamName, array $metadata, $returnSql = false)
     {
+
         $schema = new Schema();
 
         static::addToSchema($schema, $this->getTable($streamName), $metadata);
@@ -296,26 +293,6 @@ final class DoctrineEventStoreAdapter implements Adapter, CanHandleTransaction
         $this->connection->rollBack();
     }
 
-    /**
-     * Get table name for given stream name
-     *
-     * @param StreamName $streamName
-     * @return string
-     */
-    public function getTable(StreamName $streamName)
-    {
-        if (isset($this->streamTableMap[$streamName->toString()])) {
-            $tableName = $this->streamTableMap[$streamName->toString()];
-        } else {
-            $tableName = strtolower($this->getShortStreamName($streamName));
-
-            if (strpos($tableName, "_stream") === false) {
-                $tableName.= "_stream";
-            }
-        }
-
-        return $tableName;
-    }
 
     /**
      * @return Connection
@@ -349,8 +326,7 @@ final class DoctrineEventStoreAdapter implements Adapter, CanHandleTransaction
         foreach ($eventArr['metadata'] as $key => $value) {
             $eventData[$key] = (string)$value;
         }
-
-        $this->connection->insert($this->getTable($streamName), $eventData);
+        $this->connection->insert('eventsourcing', $eventData);
     }
 
     /**
